@@ -1,0 +1,18 @@
+{
+ "set-trigger": {
+  "name" : "kafka_topic_sync",
+  "startTime": "NOW+10SECONDS",
+  "event" : "scheduled",
+  "every" : "+10SECONDS",
+  "graceDuration" : "+1YEAR",
+  "enabled" : true,
+  "actions" : [
+   {
+    "name" : "sync_action",
+    "class": "com.github.solrqueue.solrkafka.KafkaTopicSyncAction",
+    "bootstrap.servers": "localhost:9093,localhost:9094",
+    "replication.factor": 2
+   }
+  ]
+ }
+}
