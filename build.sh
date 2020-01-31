@@ -16,8 +16,8 @@ DEP_JARS=`mvn -q exec:exec -Dexec.executable=echo -Dexec.args="%classpath" | tr 
 
 DEPS="
 kafka-clients-${KAFKA_VER}.jar
-lz4-java-1.4.1.jar
-snappy-java-1.1.7.1.jar
+lz4-java-1.5.0.jar
+snappy-java-1.1.7.2.jar
 "
 
 for dep in $DEPS; do
