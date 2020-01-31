@@ -6,7 +6,7 @@ import org.apache.solr.common.util.NamedList;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class KafkaUpdateProcessorFactoryTest extends SingleCoreTestBase {
+public class KafkaUpdateProcessorFactoryTest {
   @Test
   public void testInit() throws Exception {
     KafkaUpdateProcessorFactory factory = new KafkaUpdateProcessorFactory();

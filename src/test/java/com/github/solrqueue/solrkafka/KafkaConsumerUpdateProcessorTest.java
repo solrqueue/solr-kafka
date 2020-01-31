@@ -22,7 +22,7 @@ public class KafkaConsumerUpdateProcessorTest extends SingleCoreTestBase {
     long offset = 42;
     TestUpdateRequestProcessor.Factory f = new TestUpdateRequestProcessor.Factory();
     TestKafkaConsumerUpdateProcessor c =
-        new TestKafkaConsumerUpdateProcessor(testCore, "_offset_", f);
+        new TestKafkaConsumerUpdateProcessor(getTestCore(), "_offset_", f);
 
     /////////
     // ADD //
@@ -49,7 +49,7 @@ public class KafkaConsumerUpdateProcessorTest extends SingleCoreTestBase {
     directCmd.solrDoc = new SolrInputDocument();
     directCmd.solrDoc.setField("id", "real_doc_1");
     directCmd.solrDoc.setField("msg1_txt", "hi_1");
-    testCore.getUpdateHandler().addDoc(directCmd);
+    getTestCore().getUpdateHandler().addDoc(directCmd);
 
     AddUpdateCommand updateCmd = new AddUpdateCommand(emptyReq());
     updateCmd.solrDoc = new SolrInputDocument();
@@ -79,7 +79,7 @@ public class KafkaConsumerUpdateProcessorTest extends SingleCoreTestBase {
 
   @Test
   public void testRestOfChain() throws Exception {
-    KafkaConsumerUpdateProcessor c = new KafkaConsumerUpdateProcessor(testCore, "_offset_");
+    KafkaConsumerUpdateProcessor c = new KafkaConsumerUpdateProcessor(getTestCore(), "_offset_");
 
     // Test bad chains (kafka not in processors, in wrong order, etc)
     List<List<UpdateRequestProcessorFactory>> badChains = new ArrayList<>();
@@ -87,7 +87,7 @@ public class KafkaConsumerUpdateProcessorTest extends SingleCoreTestBase {
     badChains.add(Collections.singletonList(new DistributedUpdateProcessorFactory()));
     for (List<UpdateRequestProcessorFactory> chain : badChains) {
       try {
-        UpdateRequestProcessorChain noKafka = new UpdateRequestProcessorChain(chain, testCore);
+        UpdateRequestProcessorChain noKafka = new UpdateRequestProcessorChain(chain, getTestCore());
         c.restOfChain(noKafka);
         Assert.fail("invalid chain");
       } catch (Exception e) { // expected
@@ -101,7 +101,7 @@ public class KafkaConsumerUpdateProcessorTest extends SingleCoreTestBase {
     goodChain.add(new DistributedUpdateProcessorFactory());
     goodChain.add(r);
     UpdateRequestProcessorChain rest =
-        c.restOfChain(new UpdateRequestProcessorChain(goodChain, testCore));
+        c.restOfChain(new UpdateRequestProcessorChain(goodChain, getTestCore()));
     assertEquals(Collections.singletonList(r), rest.getProcessors());
   }
 }

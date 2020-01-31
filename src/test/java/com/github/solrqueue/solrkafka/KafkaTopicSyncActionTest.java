@@ -24,13 +24,13 @@ public class KafkaTopicSyncActionTest extends SingleCoreTestBase {
     KafkaTopicSyncAction syncAction = new KafkaTopicSyncAction();
 
     try {
-      syncAction.configure(testCore.getResourceLoader(), null, Collections.emptyMap());
+      syncAction.configure(getTestCore().getResourceLoader(), null, Collections.emptyMap());
       Assert.fail("Expected configure exception without required params");
     } catch (TriggerValidationException tve) { // expected
     }
 
     syncAction.configure(
-        testCore.getResourceLoader(),
+        getTestCore().getResourceLoader(),
         null,
         Collections.singletonMap("bootstrap.servers", "localhost:9000"));
   }
@@ -45,7 +45,7 @@ public class KafkaTopicSyncActionTest extends SingleCoreTestBase {
     Map<String, Object> configMap = new HashMap<>();
     configMap.put("bootstrap.servers", "localhost:9000");
     configMap.put("replication.factor", "11");
-    syncAction.configure(testCore.getResourceLoader(), null, configMap);
+    syncAction.configure(getTestCore().getResourceLoader(), null, configMap);
 
     TestSolrCloudManager cm = new TestSolrCloudManager();
     TestClusterStateProvider csp = new TestClusterStateProvider();

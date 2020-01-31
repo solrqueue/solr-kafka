@@ -25,7 +25,7 @@ public class KafkaAddUpdateCommandTest extends SingleCoreTestBase {
     ProducerRecord<String, byte[]> record = kafkaCmd.record("testTopic", 1);
     assertEquals(id, record.key());
     AddUpdateCommand deserialized =
-        new KafkaAddUpdateCommand(testCore, consumerize(record, 0)).getCommand();
+        new KafkaAddUpdateCommand(getTestCore(), consumerize(record, 0)).getCommand();
     assertEquals(123, deserialized.commitWithin);
     assertEquals(true, deserialized.overwrite);
     assertEquals(id, deserialized.getHashableId());
