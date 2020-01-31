@@ -98,8 +98,8 @@ You don't want to have producers dynamically creating kafka topics, because you 
 correct number of partitions (shards) by default when a topic is dynamically created.  It is best if
 there is just one entity in your cluster whose job is to sync the Solr's clusterstate with Kafka's
 topic + partition.  The natural place for this is the overseer. The
-[scheduled trigger](https://lucene.apache.org/solr/guide/7_3/solrcloud-autoscaling-triggers.html) c
-an run can run the sync check every N seconds.  N determines how quickly a topic is writable after
+[scheduled trigger](https://lucene.apache.org/solr/guide/7_3/solrcloud-autoscaling-triggers.html) can
+run can run the sync check every N seconds.  N determines how quickly a topic is writable after
 collection creation.
 
 ```
@@ -127,7 +127,7 @@ curl -s "localhost:8983/solr/admin/autoscaling" \
 
 **KafkaUpdateProcessorFactory Config**
 
-- Set `producer.linger.ms` to somthing greater than 0 ms (default) to send updates to kafka in batch.
+- Set `producer.linger.ms` to something greater than 0 ms (default) to send updates to kafka in batch.
   Note that this slows the /update HTTP response to wait for other requests.
 - Configure timeouts like `producer.request.timeout.ms` or `producer.max.block.ms` to define how
   Solr's update handler responds when it cannot send updates to kafka.  By default it responds in

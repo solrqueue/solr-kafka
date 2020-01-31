@@ -20,7 +20,7 @@ public class KafkaDeleteUpdateCommandTest extends SingleCoreTestBase {
     ProducerRecord<String, byte[]> record = kafkaCmd.record("testTopic", 1);
     assertEquals(id, record.key());
     DeleteUpdateCommand deserialized =
-        new KafkaDeleteUpdateCommand(testCore, consumerize(record, 0)).getCommand();
+        new KafkaDeleteUpdateCommand(getTestCore(), consumerize(record, 0)).getCommand();
     assertEquals(123, deserialized.commitWithin);
     assertEquals(id, deserialized.id);
     assertNull(deserialized.query);
@@ -33,7 +33,7 @@ public class KafkaDeleteUpdateCommandTest extends SingleCoreTestBase {
     kafkaCmd = new KafkaDeleteUpdateCommand(cmd);
     record = kafkaCmd.record("testTopic", 1);
     assertEquals(query, record.key());
-    deserialized = new KafkaDeleteUpdateCommand(testCore, consumerize(record, 0)).getCommand();
+    deserialized = new KafkaDeleteUpdateCommand(getTestCore(), consumerize(record, 0)).getCommand();
     assertEquals(123, deserialized.commitWithin);
     assertEquals(query, deserialized.query);
     assertNull(deserialized.id);
