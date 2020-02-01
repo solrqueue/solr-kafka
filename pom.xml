@@ -2,6 +2,7 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <properties>
     <solr.version>7.5.0</solr.version>
+    <kafka.version>2.2.1</kafka.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>
@@ -40,7 +41,7 @@
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
-      <version>2.0.0</version>
+      <version>${kafka.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.solr</groupId>
@@ -67,7 +68,7 @@
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka_2.11</artifactId>
-      <version>2.0.0</version>
+      <version>${kafka.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

@@ -1,11 +1,13 @@
 package org.apache.kafka.clients.admin;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.Metric;
+import org.apache.kafka.common.MetricName;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.TopicPartitionReplica;
 import org.apache.kafka.common.acl.AclBinding;
@@ -20,7 +22,7 @@ public class MockAdminClient extends AdminClient {
   public int deletedTopics = 0;
 
   @Override
-  public void close(long l, TimeUnit timeUnit) {}
+  public void close(Duration duration) {}
 
   @Override
   public CreateTopicsResult createTopics(
@@ -171,6 +173,18 @@ public class MockAdminClient extends AdminClient {
   @Override
   public DeleteConsumerGroupsResult deleteConsumerGroups(
       Collection<String> collection, DeleteConsumerGroupsOptions deleteConsumerGroupsOptions) {
+    return null;
+  }
+
+  @Override
+  public ElectPreferredLeadersResult electPreferredLeaders(
+      Collection<TopicPartition> collection,
+      ElectPreferredLeadersOptions electPreferredLeadersOptions) {
+    return null;
+  }
+
+  @Override
+  public Map<MetricName, ? extends Metric> metrics() {
     return null;
   }
 }

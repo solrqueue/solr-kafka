@@ -1,13 +1,13 @@
 ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
 SOLR_VER=7.5.0
-ZK_VER=3.5.3-beta
-KAFKA_VER=2.0.0
+ZK_VER=3.5.6
+KAFKA_VER=2.2.1
 KAFKA_SCALA_VER=2.11
 
 DEPS=$(ROOT_DIR)/.deps
 
-ZK_DEP=$(DEPS)/zookeeper-$(ZK_VER)
+ZK_DEP=$(DEPS)/apache-zookeeper-$(ZK_VER)-bin
 SOLR_DEP=$(DEPS)/solr-$(SOLR_VER)
 KAFKA_DEP=$(DEPS)/kafka_$(KAFKA_SCALA_VER)-$(KAFKA_VER)
 
@@ -20,15 +20,32 @@ ZK_NODE1=$(DATA)/zookeeper_node1
 
 
 
-.PHONY: deps-all nodes-all start stop build base-start clean distclean solr-config solr-trigger solr-restart
+.PHONY: deps-all nodes-all start stop build base-start clean distclean solr-config solr-trigger solr-restart release-verify
 
 all: $(SOLR_DEP) $(KAFKA_DEP) $(ZK_DEP) $(SOLR_NODE1)
 
 
 stop: solr-stop
-	$(KAFKA_DEP)/bin/kafka-server-stop.sh || echo "STOPPED"
+	# this sends a signal, but doesn't block until kafka is actually stopped
+	# which can cause issues if running start/stop multiple times
+	$(KAFKA_DEP)/bin/kafka-server-stop.sh && sleep 4 || echo "Kafka stopped"
+	$(KAFKA_DEP)/bin/kafka-server-stop.sh && sleep 4 || echo "Kafka stopped"
+	$(KAFKA_DEP)/bin/kafka-server-stop.sh && sleep 4 || echo "Kafka stopped"
+	$(KAFKA_DEP)/bin/kafka-server-stop.sh && sleep 4 || echo "Kafka stopped"
 	$(ZK_DEP)/bin/zkServer.sh --config $(ZK_NODE1)/conf stop
 	@echo "STOPPED"
+
+
+# Used for live-verifying the release.  Makes a 2-node cluster, creates a 3-shard replicas=2
+# collection adds some docs, and conforms the result
+release-verify: distclean start solr-trigger
+	curl -sq 'localhost:8983/solr/admin/collections?action=CREATE&collection.configName=solr_kafka&maxShardsPerNode=3&name=sk_test&numShards=3&replicationFactor=2'
+	curl -sq -H 'Content-Type: application/json' 'localhost:8983/solr/sk_test/update' -d '{"add": {"doc": {"id": "1", "msg_s": "msg1"}, "commitWithin": 100}, "add": {"doc": {"id": "2", "msg_s": "msg2"}, "commitWithin": 100}, "add": {"doc": {"id": "3", "msg_s": "msg3"}, "commitWithin": 100}}'
+	sleep 3
+	curl -sq 'localhost:8983/solr/sk_test/query?q=*:*'
+	test `curl -sq 'localhost:8983/solr/sk_test/query?q=*:*' | jq .response.numFound` -eq 3
+
+
 
 start: base-start solr-restart
 
@@ -51,15 +68,15 @@ solr-start: base-start
 solr-config: base-start
 	rm -rf "$(DATA)/configset"
 	cp -r $(SOLR_DEP)/server/solr/configsets/_default $(DATA)/configset
-	perl -pi -e 's@^(.*)(<processor class="solr.DistributedUpdateProcessorFactory"/>)@\1<processor class="com.solrqueue.solrkafka.KafkaUpdateProcessorFactory">\n\1\1<str name="bootstrap.servers">localhost:9093,localhost:9094</str>\n\1\1<str name="field">_offset_</str>\n\1</processor>\n\1\2@' $(DATA)/configset/conf/solrconfig.xml
+	perl -pi -e 's@^(.*)(<processor class="solr.DistributedUpdateProcessorFactory"/>)@\1<processor class="com.github.solrqueue.solrkafka.KafkaUpdateProcessorFactory">\n\1\1<str name="bootstrap.servers">localhost:9093,localhost:9094</str>\n\1\1<str name="field">_offset_</str>\n\1</processor>\n\1\2@' $(DATA)/configset/conf/solrconfig.xml
 	perl -pi -e 's@(<field name="_version_" .*/>)@\1\n<field name="_offset_" type="plong" indexed="false" stored="false"/>@' $(DATA)/configset/conf/managed-schema
 
 	$(SOLR_DEP)/bin/solr zk upconfig -n solr_kafka -d $(DATA)/configset -z localhost:2181
 
 base-start: nodes-all
 	echo | nc localhost 2181 || $(ZK_DEP)/bin/zkServer.sh --config $(ZK_NODE1)/conf start
-	echo | nc localhost 9093 || $(KAFKA_DEP)/bin/kafka-server-start.sh -daemon $(KAFKA_BROKER1)/config/server.properties
-	echo | nc localhost 9094 || $(KAFKA_DEP)/bin/kafka-server-start.sh -daemon $(KAFKA_BROKER2)/config/server.properties
+	echo | nc localhost 9093 || LOG_DIR=$(KAFKA_BROKER1)/logs $(KAFKA_DEP)/bin/kafka-server-start.sh -daemon $(KAFKA_BROKER1)/config/server.properties
+	echo | nc localhost 9094 || LOG_DIR=$(KAFKA_BROKER2)/logs $(KAFKA_DEP)/bin/kafka-server-start.sh -daemon $(KAFKA_BROKER2)/config/server.properties
 
 
 nodes-all: deps-all $(SOLR_NODE1) $(SOLR_NODE2) $(KAFKA_BROKER1) $(KAFKA_BROKER2) $(ZK_NODE1)
@@ -105,14 +122,14 @@ distclean: stop clean
 deps-all: $(ZK_DEP) $(KAFKA_DEP) $(SOLR_DEP)
 
 $(ZK_DEP): $(DEPS)
-	curl -L "http://www.apache.org/dist/zookeeper/zookeeper-$(ZK_VER)/zookeeper-$(ZK_VER).tar.gz" | tar -C $(DEPS) -xzf -
+	curl -Lsq "https://archive.apache.org/dist/zookeeper/zookeeper-$(ZK_VER)/apache-zookeeper-$(ZK_VER)-bin.tar.gz" | tar -C $(DEPS) -xzf -
 	cp $(ZK_DEP)/conf/zoo_sample.cfg $(ZK_DEP)/conf/zoo.cfg
 
 $(KAFKA_DEP): $(DEPS)
-	curl -L "http://www.apache.org/dist/kafka/$(KAFKA_VER)/kafka_$(KAFKA_SCALA_VER)-$(KAFKA_VER).tgz" | tar -C $(DEPS) -xzf -
+	curl -Lsq "https://archive.apache.org/dist/kafka/$(KAFKA_VER)/kafka_$(KAFKA_SCALA_VER)-$(KAFKA_VER).tgz" | tar -C $(DEPS) -xzf -
 
 $(SOLR_DEP): $(DEPS)
-	curl -L "http://www.apache.org/dist/lucene/solr/$(SOLR_VER)/solr-$(SOLR_VER).tgz" | tar -C $(DEPS) -xzf -
+	curl -Lsq "https://archive.apache.org/dist/lucene/solr/$(SOLR_VER)/solr-$(SOLR_VER).tgz" | tar -C $(DEPS) -xzf -
 
 $(DEPS):
 	mkdir -p $(ROOT_DIR)/.deps
