@@ -1,9 +1,16 @@
 ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-SOLR_VER=7.5.0
-ZK_VER=3.5.6
-KAFKA_VER=2.2.1
-KAFKA_SCALA_VER=2.11
+
+###################################
+#  BUILD VERSIONS                 #
+#  override: make SOLR_VER=7.3.1  #
+###################################
+SOLR_VER ?= 7.5.0
+KAFKA_VER ?= 2.2.1
+KAFKA_SCALA_VER ?= 2.12
+
+
+ZK_VER = 3.5.6
 
 DEPS=$(ROOT_DIR)/.deps
 
@@ -28,11 +35,11 @@ all: $(SOLR_DEP) $(KAFKA_DEP) $(ZK_DEP) $(SOLR_NODE1)
 stop: solr-stop
 	# this sends a signal, but doesn't block until kafka is actually stopped
 	# which can cause issues if running start/stop multiple times
-	$(KAFKA_DEP)/bin/kafka-server-stop.sh && sleep 4 || echo "Kafka stopped"
-	$(KAFKA_DEP)/bin/kafka-server-stop.sh && sleep 4 || echo "Kafka stopped"
-	$(KAFKA_DEP)/bin/kafka-server-stop.sh && sleep 4 || echo "Kafka stopped"
-	$(KAFKA_DEP)/bin/kafka-server-stop.sh && sleep 4 || echo "Kafka stopped"
-	$(ZK_DEP)/bin/zkServer.sh --config $(ZK_NODE1)/conf stop
+	test ! -d $(KAFKA_DEP) || ($(KAFKA_DEP)/bin/kafka-server-stop.sh && sleep 4) || echo "Kafka stopped"
+	test ! -d $(KAFKA_DEP) || ($(KAFKA_DEP)/bin/kafka-server-stop.sh && sleep 4) || echo "Kafka stopped"
+	test ! -d $(KAFKA_DEP) || ($(KAFKA_DEP)/bin/kafka-server-stop.sh && sleep 4) || echo "Kafka stopped"
+	test ! -d $(KAFKA_DEP) || ($(KAFKA_DEP)/bin/kafka-server-stop.sh && sleep 4) || echo "Kafka stopped"
+	test ! -d $(ZK_DEP) || $(ZK_DEP)/bin/zkServer.sh --config $(ZK_NODE1)/conf stop
 	@echo "STOPPED"
 
 
@@ -50,12 +57,12 @@ release-verify: distclean start solr-trigger
 start: base-start solr-restart
 
 build:
-	./build.sh $(KAFKA_VER) $(SOLR_DEP)
+	build/build.sh $(SOLR_VER) $(KAFKA_VER) $(SOLR_DEP)
 
 solr-restart: build solr-config solr-stop solr-start
 
 solr-stop:
-	$(SOLR_DEP)/bin/solr stop -all
+	test ! -d $(SOLR_DEP) || $(SOLR_DEP)/bin/solr stop -all
 
 solr-trigger: solr-start
 	curl -sq "localhost:8983/solr/admin/autoscaling" -HContent-Type:application/json -d@trigger.json

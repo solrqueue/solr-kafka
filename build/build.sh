@@ -1,11 +1,12 @@
 #!/bin/bash
 set -eo pipefail
 
-KAFKA_VER="$1"
-SOLR_DEST="$2"
+SOLR_VER="$1"
+KAFKA_VER="$2"
+SOLR_DEST="$3"
 LIB_DIR="${SOLR_DEST}/server/solr-webapp/webapp/WEB-INF/lib"
 
-mvn clean package
+mvn -Dsolr.version="${SOLR_VER}" -Dkafka.version="${KAFKA_VER}" clean package
 
 for jar in `find target -name "*jar"`; do
   cp "$jar" "${LIB_DIR}"
