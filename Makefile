@@ -25,6 +25,12 @@ KAFKA_BROKER1=$(DATA)/kafka_broker1
 KAFKA_BROKER2=$(DATA)/kafka_broker2
 ZK_NODE1=$(DATA)/zookeeper_node1
 
+SOLR_NODE1_OPTS="-Dsolr.autoSoftCommit.maxTime=1000"
+# To add debugging:
+#SOLR_NODE1_OPTS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5003 -Dsolr.autoSoftCommit.maxTime=1000"
+SOLR_NODE2_OPTS="-Dsolr.autoSoftCommit.maxTime=1000"
+# To add debugging:
+# SOLR_NODE2_OPTS="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5004 -Dsolr.autoSoftCommit.maxTime=1000"
 
 
 .PHONY: deps-all nodes-all start stop build base-start clean distclean solr-config solr-trigger solr-restart release-verify
@@ -39,6 +45,7 @@ stop: solr-stop
 	test ! -d $(KAFKA_DEP) || ($(KAFKA_DEP)/bin/kafka-server-stop.sh && sleep 4) || echo "Kafka stopped"
 	test ! -d $(KAFKA_DEP) || ($(KAFKA_DEP)/bin/kafka-server-stop.sh && sleep 4) || echo "Kafka stopped"
 	test ! -d $(KAFKA_DEP) || ($(KAFKA_DEP)/bin/kafka-server-stop.sh && sleep 4) || echo "Kafka stopped"
+	test ! -d $(KAFKA_DEP) || ($(KAFKA_DEP)/bin/kafka-server-stop.sh && sleep 4) || echo "Kafka stopped"
 	test ! -d $(ZK_DEP) || $(ZK_DEP)/bin/zkServer.sh --config $(ZK_NODE1)/conf stop
 	@echo "STOPPED"
 
@@ -47,7 +54,7 @@ stop: solr-stop
 # collection adds some docs, and conforms the result
 release-verify: distclean start solr-trigger
 	curl -sq 'localhost:8983/solr/admin/collections?action=CREATE&collection.configName=solr_kafka&maxShardsPerNode=3&name=sk_test&numShards=3&replicationFactor=2'
-	curl -sq -H 'Content-Type: application/json' 'localhost:8983/solr/sk_test/update' -d '{"add": {"doc": {"id": "1", "msg_s": "msg1"}, "commitWithin": 100}, "add": {"doc": {"id": "2", "msg_s": "msg2"}, "commitWithin": 100}, "add": {"doc": {"id": "3", "msg_s": "msg3"}, "commitWithin": 100}}'
+	curl -sq -H 'Content-Type: application/json' 'localhost:8983/solr/sk_test/update' -d '{"add": {"doc": {"id": "1", "msg_s": "msg1"}}, "add": {"doc": {"id": "2", "msg_s": "msg2"}}, "add": {"doc": {"id": "3", "msg_s": "msg3"}}}'
 	sleep 3
 	curl -sq 'localhost:8983/solr/sk_test/query?q=*:*'
 	test `curl -sq 'localhost:8983/solr/sk_test/query?q=*:*' | jq .response.numFound` -eq 3
@@ -68,9 +75,8 @@ solr-trigger: solr-start
 	curl -sq "localhost:8983/solr/admin/autoscaling" -HContent-Type:application/json -d@trigger.json
 
 solr-start: base-start
-	echo | nc localhost 8983 || SOLR_LOGS_DIR=$(SOLR_NODE1)/logs $(SOLR_DEP)/bin/solr start -cloud -p 8983 -s $(SOLR_NODE1) -z localhost:2181 -a "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5003"
-	echo | nc localhost 8984 || SOLR_LOGS_DIR=$(SOLR_NODE2)/logs $(SOLR_DEP)/bin/solr start -cloud -p 8984 -s $(SOLR_NODE2) -z localhost:2181 -a "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5004"
-
+	echo | nc localhost 8983 || SOLR_LOGS_DIR=$(SOLR_NODE1)/logs $(SOLR_DEP)/bin/solr start -h 127.0.0.1 -cloud -p 8983 -s $(SOLR_NODE1) -z localhost:2181 -a $(SOLR_NODE1_OPTS)
+	echo | nc localhost 8984 || SOLR_LOGS_DIR=$(SOLR_NODE2)/logs $(SOLR_DEP)/bin/solr start -h 127.0.0.1 -cloud -p 8984 -s $(SOLR_NODE2) -z localhost:2181 -a $(SOLR_NODE2_OPTS)
 
 solr-config: base-start
 	rm -rf "$(DATA)/configset"
