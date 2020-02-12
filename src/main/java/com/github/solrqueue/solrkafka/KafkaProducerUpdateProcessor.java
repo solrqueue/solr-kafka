@@ -28,6 +28,7 @@ import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.update.AddUpdateCommand;
 import org.apache.solr.update.DeleteUpdateCommand;
 import org.apache.solr.update.UpdateCommand;
+import org.apache.solr.update.processor.DistributingUpdateProcessorFactory;
 import org.apache.solr.update.processor.UpdateRequestProcessor;
 
 /**
@@ -99,8 +100,25 @@ public class KafkaProducerUpdateProcessor extends UpdateRequestProcessor {
     return requestPartitions(id, doc, null);
   }
 
+  /**
+   * Determine if submitting to kafka should be skipped. If so, the next processor in the chain
+   * should be invoked
+   *
+   * @param cmd the update/delete command
+   * @return true if should skip submitting to kafka
+   */
   private boolean shouldSkip(UpdateCommand cmd) {
     SolrParams params = cmd.getReq().getParams();
+
+    /* Parameters like kafka.skip do not always get passed down to
+     * the replicas if skipped, it depends on which update handler
+     * was used.  If we are on the receiving end of a distributed update,
+     * from a leader, then kafka was skipped at the leader, so no point
+     * in trying to submit via kafka in that case, since the intention was to skip.
+     */
+    if (params.get(DistributingUpdateProcessorFactory.DISTRIB_UPDATE_PARAM) != null) {
+      return true;
+    }
     return collection == null
         || params.getBool(KafkaUpdateProcessorFactory.KAFKA_SKIP_PARAM, skipDefault);
   }
